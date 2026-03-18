@@ -85,6 +85,17 @@ function Install-ArasInnovator {
 
     $logFile = Join-Path $env:TEMP 'ArasInnovatorSetup.log'
 
+    # Check if the target database already exists in SQL Server
+    $dbMode = '0'  # 0 = create new
+    try {
+        $sqlCheck = & sqlcmd -S 127.0.0.1 -U sa -P "$saPassword" -Q "SELECT DB_ID('$dbName')" -h -1 -W 2>$null
+        if ($sqlCheck -and $sqlCheck.Trim() -ne '' -and $sqlCheck.Trim() -ne 'NULL') {
+            Show-Warn "Database '$dbName' already exists in SQL Server."
+            Show-Info 'The installer will use the existing database.'
+            $dbMode = '1'  # 1 = use existing
+        }
+    } catch {}
+
     Show-Info 'Running Aras Innovator MSI installer...'
     Show-Info '(This may take several minutes)'
 
@@ -100,7 +111,7 @@ function Install-ArasInnovator {
         'SMTPSERVER=queue'
         "VAULTNAME=$dbName"
         "VAULTFOLDER=`"$vaultPath`""
-        'DB_CREATE_NEW_OR_USE_EXISTING=0'
+        "DB_CREATE_NEW_OR_USE_EXISTING=$dbMode"
         'IS_SQLSERVER_SERVER=127.0.0.1'
         "IS_SQLSERVER_DATABASE=$dbName"
         'IS_SQLSERVER_AUTHENTICATION=1'
