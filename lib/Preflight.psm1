@@ -28,12 +28,22 @@ function Test-SqlServerInstalled {
 }
 
 function Test-IISEnabled {
+    # DISM approach (works on Windows 10/11 and most Server editions)
     try {
         $feature = Get-WindowsOptionalFeature -Online -FeatureName 'IIS-WebServer' -ErrorAction SilentlyContinue
         if ($feature -and $feature.State -eq 'Enabled') {
             return @{ Enabled = $true }
         }
     } catch {}
+
+    # ServerManager fallback (Windows Server roles/features)
+    try {
+        $role = Get-WindowsFeature -Name 'Web-Server' -ErrorAction SilentlyContinue
+        if ($role -and $role.Installed) {
+            return @{ Enabled = $true }
+        }
+    } catch {}
+
     return @{ Enabled = $false }
 }
 

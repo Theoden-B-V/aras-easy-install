@@ -177,17 +177,28 @@ function Get-NetworkMacAddresses {
             }
         }
     } catch {
-        # Get-NetAdapter may not be available on older systems
+        # Fallback: CIM (preferred) or WMI (legacy) for older/minimal systems
         try {
-            $wmi = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled -eq $true }
-            foreach ($a in $wmi) {
+            $cim = Get-CimInstance Win32_NetworkAdapterConfiguration -ErrorAction Stop | Where-Object { $_.IPEnabled -eq $true }
+            foreach ($a in $cim) {
                 $adapters += @{
                     Name        = $a.Description
                     MacAddress  = $a.MACAddress
                     Description = $a.Description
                 }
             }
-        } catch {}
+        } catch {
+            try {
+                $wmi = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled -eq $true }
+                foreach ($a in $wmi) {
+                    $adapters += @{
+                        Name        = $a.Description
+                        MacAddress  = $a.MACAddress
+                        Description = $a.Description
+                    }
+                }
+            } catch {}
+        }
     }
     return $adapters
 }
