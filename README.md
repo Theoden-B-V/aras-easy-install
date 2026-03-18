@@ -102,3 +102,9 @@ aras-easy-install/
 ## License
 
 MIT -- see [LICENSE](LICENSE).
+
+---
+
+**Short on time?** We help teams with Aras installations, integrations,
+upgrades, ItemType development, AI agent workflows, ERP connections, and more.
+Get in touch at [theoden.software](https://www.theoden.software).
