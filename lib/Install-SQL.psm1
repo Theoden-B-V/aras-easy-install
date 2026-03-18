@@ -5,6 +5,19 @@ function Install-SqlServer {
         [string]$TempDir = "$env:TEMP\ArasSQL"
     )
 
+    # If SQL Server is already installed and running, skip the heavy download/install
+    $svc = Get-Service -Name 'MSSQLSERVER' -ErrorAction SilentlyContinue
+    if ($svc) {
+        Show-Info 'SQL Server instance (MSSQLSERVER) already exists on this machine.'
+        if ($svc.Status -ne 'Running') {
+            Show-Info 'Starting SQL Server...'
+            Set-Service -Name 'MSSQLSERVER' -StartupType Automatic -ErrorAction SilentlyContinue
+            Start-Service -Name 'MSSQLSERVER' -ErrorAction SilentlyContinue
+        }
+        Show-Success 'SQL Server is running -- skipping reinstall'
+        return $true
+    }
+
     $versions = Get-SqlServerVersions
     $sql = $versions[$Version]
     if (-not $sql) { throw "Unknown SQL Server version: $Version" }
@@ -55,7 +68,15 @@ function Install-SqlServer {
         -Wait -PassThru -NoNewWindow
 
     if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
-        throw "SQL Server installation failed with exit code $($proc.ExitCode). Check logs at: $extractDir\setup_log"
+        # Check if SQL Server ended up running despite the exit code
+        # (e.g. "features already installed" = -2068643838)
+        $svcAfter = Get-Service -Name 'MSSQLSERVER' -ErrorAction SilentlyContinue
+        if ($svcAfter) {
+            Show-Warn "Setup exited with code $($proc.ExitCode) but SQL Server is present."
+            Show-Info 'This usually means the instance was already installed. Continuing.'
+        } else {
+            throw "SQL Server installation failed with exit code $($proc.ExitCode). Check logs at: $extractDir\setup_log"
+        }
     }
 
     # Ensure service starts automatically
