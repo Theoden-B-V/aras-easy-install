@@ -10,8 +10,8 @@ it does the rest.
 that contains the `.msi` file.
 
 - **Community Edition (free):** register at
-  [aras.com/innovator](https://aras.com/innovator), download the CD Image zip,
-  and extract it.
+  [aras.com/en/download](https://aras.com/en/download), download the CD Image
+  zip, and extract it.
 - **Licensed customers:** download from your Aras MFT (Managed File Transfer)
   portal.
 
