@@ -1,3 +1,16 @@
+function Test-ArasInstallValid {
+    param([string]$InstallDir)
+    # A real Aras install has Server binaries, not just a leftover config file
+    $markers = @(
+        (Join-Path $InstallDir 'Innovator\Server'),
+        (Join-Path $InstallDir 'Innovator\Client')
+    )
+    foreach ($m in $markers) {
+        if (Test-Path $m -PathType Container) { return $true }
+    }
+    return $false
+}
+
 function Find-ExistingArasInstall {
     $candidates = @()
 
@@ -42,10 +55,18 @@ function Find-ExistingArasInstall {
         }
     }
 
-    if ($candidates.Count -eq 0) { return $null }
+    # Filter out leftover config files with no actual Aras binaries
+    $valid = @()
+    foreach ($c in $candidates) {
+        if (Test-ArasInstallValid -InstallDir $c.InstallDir) {
+            $valid += $c
+        }
+    }
+
+    if ($valid.Count -eq 0) { return $null }
 
     # Return the first (best) match
-    return $candidates[0]
+    return $valid[0]
 }
 
 function Read-InnovatorConfig {
