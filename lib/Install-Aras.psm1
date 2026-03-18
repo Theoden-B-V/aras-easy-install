@@ -54,6 +54,27 @@ function Install-ArasInnovator {
         throw "Aras MSI not found at: $msiPath"
     }
 
+    # Remove leftover Aras Agent services from a previous install.
+    # The MSI refuses to run if any Aras Agent service is registered.
+    $agentServices = Get-Service -Name 'ArasInnovatorAgent*' -ErrorAction SilentlyContinue
+    if ($agentServices) {
+        foreach ($s in $agentServices) {
+            Show-Info "Removing leftover service: $($s.Name)"
+            if ($s.Status -eq 'Running') { Stop-Service -Name $s.Name -Force -ErrorAction SilentlyContinue }
+            & sc.exe delete $s.Name 2>&1 | Out-Null
+        }
+    }
+
+    # Remove leftover IIS web application that would conflict with the new alias
+    try {
+        Import-Module WebAdministration -ErrorAction SilentlyContinue
+        $existing = Get-WebApplication -Name $webAlias -ErrorAction SilentlyContinue
+        if ($existing) {
+            Show-Info "Removing leftover IIS application: /$webAlias"
+            Remove-WebApplication -Name $webAlias -Site 'Default Web Site' -ErrorAction SilentlyContinue
+        }
+    } catch {}
+
     # Ensure install and vault directories exist
     if (-not (Test-Path $installDir)) {
         New-Item -Path $installDir -ItemType Directory -Force | Out-Null
