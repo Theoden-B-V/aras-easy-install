@@ -85,14 +85,27 @@ function Install-ArasInnovator {
 
     $logFile = Join-Path $env:TEMP 'ArasInnovatorSetup.log'
 
-    # Check if the target database already exists in SQL Server
-    $dbMode = '0'  # 0 = create new
+    # The MSI's DoesDBExists VBScript shows a dialog when the database already
+    # exists. In silent mode (/qn) the dialog auto-cancels -> exit code 1602.
+    # No MSI parameter value suppresses this. The only reliable fix is to ensure
+    # the database does NOT exist before the MSI runs.
     try {
         $sqlCheck = & sqlcmd -S 127.0.0.1 -U sa -P "$saPassword" -Q "SELECT DB_ID('$dbName')" -h -1 -W 2>$null
         if ($sqlCheck -and $sqlCheck.Trim() -ne '' -and $sqlCheck.Trim() -ne 'NULL') {
             Show-Warn "Database '$dbName' already exists in SQL Server."
-            Show-Info 'The installer will use the existing database.'
-            $dbMode = '1'  # 1 = use existing
+            $choice = Read-Selection -Prompt 'How should we handle this?' -Options @(
+                @{ Label = "Drop '$dbName' and let the MSI recreate it"; Value = 'drop'; Hint = 'data will be lost' }
+                @{ Label = "Enter a different database name";            Value = 'rename'; Hint = '' }
+            )
+            if ($choice -eq 'drop') {
+                Show-Info "Dropping database '$dbName'..."
+                & sqlcmd -S 127.0.0.1 -U sa -P "$saPassword" -Q "ALTER DATABASE [$dbName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$dbName]" 2>&1 | Out-Null
+                Show-Success "Database '$dbName' dropped"
+            } else {
+                $dbName = Read-TextInput -Prompt 'New database name'
+                $Config.DbName = $dbName
+                Show-Info "Will use database name: $dbName"
+            }
         }
     } catch {}
 
@@ -111,7 +124,7 @@ function Install-ArasInnovator {
         'SMTPSERVER=queue'
         "VAULTNAME=$dbName"
         "VAULTFOLDER=`"$vaultPath`""
-        "DB_CREATE_NEW_OR_USE_EXISTING=$dbMode"
+        'DB_CREATE_NEW_OR_USE_EXISTING=0'
         'IS_SQLSERVER_SERVER=127.0.0.1'
         "IS_SQLSERVER_DATABASE=$dbName"
         'IS_SQLSERVER_AUTHENTICATION=1'
