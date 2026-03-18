@@ -105,6 +105,9 @@ MIT -- see [LICENSE](LICENSE).
 
 ---
 
+Inspired by [@seb1992](https://github.com/seb1992)'s
+[aras-innovator-docker](https://github.com/seb1992/aras-innovator-docker).
+
 **Short on time?** We help teams with Aras installations, integrations,
 upgrades, ItemType development, AI agent workflows, ERP connections, and more.
 Get in touch at [arasdeveloper.com](https://www.arasdeveloper.com).
