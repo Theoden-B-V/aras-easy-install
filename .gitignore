@@ -1,0 +1,4 @@
+*.log
+*.tmp
+*.bak
+Uninstall-Aras.ps1
